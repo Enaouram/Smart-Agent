@@ -1,0 +1,138 @@
+#
+# Grammar to handle the exemple dialog
+#
+
+% start S
+
+# A sentence can be either an assertion or a question
+# We represent it with a conjunction with the right atom
+S[SEM=<?assert & assertion>] -> Assertion[SEM=?assert]
+S[SEM=<?question & question>] -> Question[SEM=?question]
+
+S[SEM=<?rule & assertion>] -> Rule[SEM=?rule]
+S[SEM=<?conditional & assertion>] -> Conditional[SEM=?conditional]
+
+# Update the semantic representation for Assertion and Question
+Assertion[SEM=<?n(?vp(?sn))>] -> NP[SEM=?n] GV[SEM=?vp] 
+Assertion[SEM=<?n(?neg(?vp(?sn)))>] -> NP[SEM=?n] GV[SEM=?vp] ADV[SEM=?neg] NP[SEM=?sn]
+Assertion[SEM=<?subj(?vp(?obj))>] -> NP[SEM=?subj] VState[SEM=?vp] NP[SEM=?obj]
+Assertion[SEM=<?subj(?vp(?adj))>] -> NP[SEM=?subj] VState[SEM=?vp] Adj[SEM=?adj]
+Assertion[SEM=<?pp>] -> NP[SEM=?subj] VState[SEM=?vp] PP[SEM=?pp]
+
+# Règle pour une phrase conditionnelle
+Conditional[SEM=<?if(?cond, ?then)>] -> 'If' Assertion[SEM=?cond] 'then' Assertion[SEM=?then]
+
+# Règle généralisée pour identifier une condition
+Condition[SEM=<?cond>] -> SimpleCondition[SEM=?cond] | CompoundCondition[SEM=?cond]
+
+# Règles pour des conditions simples et composées
+SimpleCondition[SEM=<?simple_cond>] -> Assertion[SEM=?cond]
+CompoundCondition[SEM=<?compound_cond>] -> Assertion[SEM=?cond] Conj[SEM=<\P Q.P & Q>] Assertion[SEM=?cond]
+Assertion[SEM=?cond] -> Assertion[SEM=<?n(?vp(?sn))>] | Assertion[SEM=<?n(?neg(?vp(?sn)))>] | Assertion[SEM=<?subj(?vp(?obj))>] | Assertion[SEM=<?subj(?vp(?adj))>] | Assertion[SEM=<?pp>]
+Assertion[SEM=?then] -> Assertion[SEM=<?n(?vp(?sn))>] | Assertion[SEM=<?n(?neg(?vp(?sn)))>] | Assertion[SEM=<?subj(?vp(?obj))>] | Assertion[SEM=<?subj(?vp(?adj))>] | Assertion[SEM=<?pp>]
+
+# Les questions 
+
+Question[SEM=<?subj(?vp(?obj))>] -> VState[SEM=?vp] NP[SEM=?subj] NP[SEM=?obj] QMark 
+Question[SEM=<?subj(?vp(?obj))>] -> VState[SEM=?vp] NP[SEM=?subj] NP[SEM=?obj] QMark 
+Question[SEM=<?subj(?vp(?neg(?obj)))>] -> VState[SEM=?vp] PropN[SEM=?subj] ADV[SEM=?neg] NP[SEM=?obj] QMark
+Question[SEM=<?pp>] -> VState[SEM=?vp] NP[SEM=?subj] PP[SEM=?pp] QMark 
+
+#Questions what who 
+
+Question[SEM=<?wh(?vp)>] -> WhNP[SEM=?wh] VState[SEM=?vp]  NP[SEM=<(?n)>] QMark
+WhNP[SEM=<?det(?n)>] -> WhDet[SEM=?det] N[SEM=?n]
+
+WhDet[SEM=<\P Q.(exists x.(what(x) & P(x) & Q(x)))>] -> 'what'
+WhDet[SEM=<\P Q.(exists x.(who(x) & P(x) & Q(x)))>] -> 'who'
+
+GV[NUM=?n,SEM=<(?sv)>] -> VState[SEM=?sv] ADV[SEM=?adv] | VState[SEM=?sv] | VState[SEM=?sv] Adj[SEM=?adj] | VState[SEM=?sv] Prep[SEM=?prep]
+
+GV[NUM=?n,SEM=<(?sv)(?sn)>] -> VState[NUM=?n,SEM=?sv] NP[SEM=?sn]  
+
+
+NP[SEM=<(?n)>] -> Det[SEM=?det] N[SEM=?n] | PropN[SEM=?n] | N[SEM=?n] | Prep[SEM=?prep] PropN[SEM=?n] | Prep[SEM=?prep] Det[SEM=?det] N[SEM=?n] | Det[SEM=?det] Adj[SEM=?adj] N[SEM=?n] | Adj[SEM=?adj]
+
+NP[SEM=<?adj>] ->  Det[SEM=?det] Adj[SEM=?adj] N[SEM=?n] | Adj[SEM=?adj]
+
+ADV[SEM=<\P x.(-P(x))>] -> 'not'
+
+WhNP[SEM=<?det(?n)>] -> WhDet[SEM=?det] N[SEM=?n]
+
+
+# Add the missing QMark rule
+
+
+
+QMark[] -> '?'
+
+
+
+
+
+# Lexical entries for conjunctions and conditionals
+Conj[SEM=<\P Q.P & Q>] -> 'and'
+
+
+
+#############################
+# Lexical Rules
+#############################
+
+PropN[-LOC,NUM=sg,SEM=<\P.P(alice)>] -> 'Alice'
+PropN[-LOC,NUM=sg,SEM=<\P.P(angus)>] -> 'Angus'
+PropN[-LOC,NUM=sg,SEM=<\P.P(bob)>] -> 'Bob'
+PropN[-LOC,NUM=sg,SEM=<\P.P(cyril)>] -> 'Cyril'
+
+PropN[-LOC,NUM=sg,SEM=<\P.P(irene)>] -> 'Irene'
+
+PropN[+LOC,NUM=sg,SEM=<\P.Phoenix(x)>] -> 'Phoenix'
+
+Det[NUM=sg,SEM=<\P Q.all x.(P(x) -> Q(x))>] -> 'every'
+Det[NUM=pl,SEM=<\P Q.all x.(P(x) -> Q(x))>] -> 'all'
+Det[SEM=<\P Q.exists x.(P(x) & Q(x))>] -> 'some'
+
+Det[NUM=sg] -> 'a'
+Det[NUM=sg] -> 'an'
+
+N[NUM=sg,SEM=<\x.girl(x)>] -> 'girl'
+N[NUM=sg,SEM=<\x.boy(x)>] -> 'boy'
+N[NUM=sg,SEM=<\x.student(x)>] -> 'student'
+N[NUM=pl,SEM=<\x.student(x)>] -> 'students'
+N[NUM=pl,SEM=<\P.P(student)>] -> 'Students'
+N[NUM=sg,SEM=<\x.place(x)>] -> 'place'
+N[NUM=pl,SEM=<\x.place(x)>] -> 'places'
+N[NUM=pl,SEM=<\x.place(x)>] -> 'Places'
+N[NUM=sg,SEM=<\x.city(x)>] -> 'city'
+N[NUM=pl,SEM=<\x.city(x)>] -> 'cities'
+N[NUM=pl,SEM=<\P.P(city)>] -> 'Cities'
+N[NUM=sg,SEM=<\x.person(x)>] -> 'person'
+N[NUM=pl,SEM=<\x.person(x)>] -> 'people'
+N[NUM=pl,SEM=<\P.P(person)>] -> 'People'
+
+N[NUM=sg,SEM=<\X.X>] -> 'it'
+N[NUM=sg,SEM=<\X.X>] -> 'It'
+
+N[NUM=sg,SEM=<\X.X>] -> 'he'
+N[NUM=sg,SEM=<\X.X>] -> 'He'
+
+N[NUM=sg,SEM=<\X.X>] -> 'she'
+N[NUM=sg,SEM=<\X.X>] -> 'She'
+
+ADV[SEM=<\P x.(-P(x))>] -> 'not'
+
+Adj[SEM=<\P.hot(x)>] -> 'hot'
+Adj[SEM=<\x.happy(x)>] -> 'happy'
+
+PP[SEM=<snow(here)>] -> 'snowing'
+PP[SEM=<rain(here)>] -> 'raining'
+PP[SEM=<rain(here)>] -> 'sunny'
+PP[SEM=<cold(here)>] -> 'cold'
+
+Prep[+LOC,SEM=<\X . from(X)>] -> 'from'
+Prep[] -> 'to'
+
+VState[NUM=sg,SEM=<\X Y.X(Y)>,TNS=pres] -> 'is'
+VState[NUM=sg,SEM=<\X Y.X(Y)>,TNS=pres] -> 'Is'
+VState[NUM=pl,SEM=<\X Y.all x.(Y(x) -> X(x))>,TNS=pres] -> 'are'
+VState[NUM=pl,SEM=<\X Y.all x.(Y(x) -> X(x))>,TNS=pres] -> 'Are'
